@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const requestPromise = require('request-promise')
 
 const ApartmentModel = require('../../models/Apartment')
+const getGeoByAMap = require('../utils/getGeoByAMap')
 
 mongoose.Promise = global.Promise
 mongoose.connect('mongodb://localhost:27017/apartments')
@@ -41,19 +42,43 @@ async function getApartments(pageOffset) {
 
 async function main() {
   const limit = 25
-  const pendingTime = 3000
+  const pendingTime = 2000
 
   let pageOffset = 0
 
   while (pageOffset < 5000) {
-    console.log(`[get apartments start], offset => ${pageOffset}\n`)
+    console.log(`[get apartments start], offset => ${pageOffset}`)
 
-    const list = await getApartments(pageOffset)
-    console.log(`[get apartments finished], list => ${list.map(item => '\n' + item.title)}\n`)
+    let list = await getApartments(pageOffset)
+    const docs = await ApartmentModel.find({
+      $or: [
+        {
+          title: {
+            $in: list.map(item => item.title)
+          }
+        }, {
+          link: {
+            $in: list.map(item => item.link)
+          }
+        }
+      ]
+    }, ['link'])
 
-    const docs = await ApartmentModel.insertMany(list)
+    list = list.filter(item => {
+      return docs.map(item => item.title).indexOf(item.title) < 0 && docs.map(item => item.link).indexOf(item.link) < 0
+    })
+    const uniquedList = []
 
-    console.log(`[pending ${pendingTime}ms]\n`)
+    list.forEach(item => {
+      if (uniquedList.map(item => item.title).indexOf(item.title) < 0) {
+        uniquedList.push(item)
+      }
+    })
+    console.log(`[get apartments and remove dupulicated finished], list => \n${uniquedList.map(item => item.title).join('\n')}\n`)
+
+    const apartments = await getGeoByAMap(uniquedList)
+    // await ApartmentModel.insertMany(apartments)
+
     await new Promise(resolve => setTimeout(() => {
       resolve()
     }, pendingTime))

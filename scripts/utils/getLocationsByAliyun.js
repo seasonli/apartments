@@ -1,13 +1,6 @@
-const mongoose = require('mongoose')
 const requestPromise = require('request-promise')
 const crypto = require('crypto')
 const url = require('url')
-
-const ApartmentModel = require('../../models/Apartment')
-const LocatedApartmentModel = require('../../models/LocatedApartment')
-
-mongoose.Promise = global.Promise
-mongoose.connect('mongodb://localhost:27017/apartments')
 
 function md5(buffer) {
   let hash
@@ -88,44 +81,4 @@ async function getLocations(apartments) {
   }]
 }
 
-async function main() {
-  let pageOffset = 0
-  const limit = 1
-  const pendingTime = 300
-
-  while (1) {
-    let apartments = await ApartmentModel.find().skip(pageOffset).limit(limit)
-
-    if (apartments.length === 0) {
-      break
-    }
-
-    apartments = apartments.map(item => {
-      const { _id, title, vendorId, vendorName, link } = item
-
-      return {
-        title,
-        vendorId,
-        vendorName,
-        link
-      }
-    })
-
-    console.log(`[get apartments locations start], titles => \n${apartments.map(item => item.title).join('\n')}`)
-
-    apartments = await getLocations(apartments)
-    console.log(`[get apartments locations start], locations => \n${apartments.map(item => item.locations.join('|')).join('\n')}\n`)
-
-    await LocatedApartmentModel.insertMany(apartments)
-
-    await new Promise(resolve => setTimeout(() => {
-      resolve()
-    }, pendingTime))
-
-    pageOffset += apartments.length
-  }
-}
-
-main().then(() => {
-  console.log(`[task finished]`)
-})
+module.exports = getLocations

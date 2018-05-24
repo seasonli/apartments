@@ -29,9 +29,9 @@ async function getGeo(apartments) {
 }
 
 async function main() {
-  let pageOffset = 2856
+  let pageOffset = 0
   const limit = 1
-  const pendingTime = 30
+  const pendingTime = 10
 
   while (1) {
     let apartments = await ApartmentModel.find().skip(pageOffset).limit(limit)

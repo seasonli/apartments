@@ -2,7 +2,7 @@ const cheerio = require('cheerio')
 const mongoose = require('mongoose')
 const requestPromise = require('request-promise')
 
-const ApartmentModel = require('../../models/Apartment')
+const GeoApartmentModel = require('../../models/GeoApartment')
 const getGeoByAMap = require('../utils/getGeoByAMap')
 
 mongoose.Promise = global.Promise
@@ -50,7 +50,7 @@ async function main() {
     console.log(`[get apartments start], offset => ${pageOffset}`)
 
     let list = await getApartments(pageOffset)
-    const docs = await ApartmentModel.find({
+    const docs = await GeoApartmentModel.find({
       $or: [
         {
           title: {
@@ -77,7 +77,7 @@ async function main() {
     console.log(`[get apartments and remove dupulicated finished], list => \n${uniquedList.map(item => item.title).join('\n')}\n`)
 
     const apartments = await getGeoByAMap(uniquedList)
-    // await ApartmentModel.insertMany(apartments)
+    await GeoApartmentModel.insertMany(apartments)
 
     await new Promise(resolve => setTimeout(() => {
       resolve()

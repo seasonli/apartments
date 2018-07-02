@@ -31,11 +31,16 @@ async function getApartments(pageOffset) {
       return
     }
 
-    const title = $a.attr('title')
-    const link = $a.attr('href')
-    const vendorId = link.match(/(\d+)/)[1]
+    const title = $a.attr('title').trim()
+    const link = $a.attr('href').trim()
+    const vendorId = link.match(/(\d+)/)[1].trim()
 
-    list.push({vendorName: 'douban', vendorId, title, link})
+    list.push({
+      vendorName: 'douban',
+      vendorId,
+      title,
+      link
+    })
   })
 
   return list
@@ -48,12 +53,12 @@ async function main() {
   let pageOffset = 0
 
   while (pageOffset < 5000) {
-    console.log(`[get apartments start], offset => ${pageOffset}`)
+    try {
+      console.log(`[get apartments start], offset => ${pageOffset}`)
 
-    let list = await getApartments(pageOffset)
-    const docs = await GeoApartmentModel.find({
-      $or: [
-        {
+      let list = await getApartments(pageOffset)
+      const docs = await GeoApartmentModel.find({
+        $or: [{
           title: {
             $in: list.map(item => item.title)
           }
@@ -61,30 +66,37 @@ async function main() {
           link: {
             $in: list.map(item => item.link)
           }
+        }]
+      }, ['link'])
+
+      list = list.filter(item => {
+        return docs.map(item => item.title).indexOf(item.title) < 0 && docs.map(item => item.link).indexOf(item.link) < 0
+      })
+      const uniquedList = []
+
+      list.forEach(item => {
+        if (uniquedList.map(item => item.title).indexOf(item.title) < 0) {
+          uniquedList.push(item)
         }
-      ]
-    }, ['link'])
-
-    list = list.filter(item => {
-      return docs.map(item => item.title).indexOf(item.title) < 0 && docs.map(item => item.link).indexOf(item.link) < 0
-    })
-    const uniquedList = []
-
-    list.forEach(item => {
-      if (uniquedList.map(item => item.title).indexOf(item.title) < 0) {
-        uniquedList.push(item)
+      })
+      console.log(`[get apartments and remove dupulicated finished], list => `)
+      if (uniquedList.length > 0) {
+        console.log(`${uniquedList.map(item => item.title).join('\n')}`)
       }
-    })
-    console.log(`[get apartments and remove dupulicated finished], list => \n${uniquedList.map(item => item.title).join('\n')}\n`)
 
-    const apartments = await getGeoByAMap(uniquedList)
-    await GeoApartmentModel.insertMany(apartments)
+      const apartments = await getGeoByAMap(uniquedList)
+      await GeoApartmentModel.insertMany(apartments)
 
-    await new Promise(resolve => setTimeout(() => {
-      resolve()
-    }, pendingTime))
+      pageOffset += limit
+    } catch (ex) {
+      console.log(`[Exception] => ${ex}`)
+    } finally {
+      console.log(``)
 
-    pageOffset += limit
+      await new Promise(resolve => setTimeout(() => {
+        resolve()
+      }, pendingTime))
+    }
   }
 }
 

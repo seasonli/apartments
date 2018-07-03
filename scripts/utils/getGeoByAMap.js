@@ -30,7 +30,7 @@ async function getGeo(apartments) {
   const res = res_0.concat(res_1)
 
   apartments.forEach((item, i) => {
-    item.geo = res[i].body.geocodes[0]
+    item.geo = res[i].body.geocodes ? res[i].body.geocodes[0] : {}
   })
 
   return apartments

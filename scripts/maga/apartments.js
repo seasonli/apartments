@@ -13,9 +13,11 @@ async function main() {
     'geo': {
       $ne: {}
     }
+  }).sort({
+    _id: -1
   })
 
-  const fields = ['geo.district', 'title', 'link']
+  const fields = ['geo.district', 'title', 'link', 'createTime']
   const opts = {
     fields
   }
